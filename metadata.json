@@ -1,0 +1,6 @@
+{
+  "name": "GateWise",
+  "description": "AI Crowd-Aware Fan Navigator for Smart Stadiums",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
