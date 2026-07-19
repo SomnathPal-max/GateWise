@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { StadiumData } from "../types";
-import { Database, Check, AlertCircle } from "lucide-react";
+import { Database, Check, AlertCircle, Activity } from "lucide-react";
+import PredictionChart, { PredictionDataPoint } from "./PredictionChart";
 
 interface DataConsoleViewProps {
   data: StadiumData;
@@ -11,6 +12,27 @@ export default function DataConsoleView({ data, onUpdate }: DataConsoleViewProps
   const [jsonText, setJsonText] = useState(JSON.stringify(data, null, 2));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Generate mock prediction data for a specific zone
+  const predictionDataPoints = useMemo<PredictionDataPoint[]>(() => {
+    const currentZone = data.zones[0];
+    const currentDensity = currentZone ? currentZone.occupancy_pct : 50;
+    const now = new Date();
+    
+    // Create 6 data points over the next hour
+    return Array.from({ length: 6 }).map((_, i) => {
+      const time = new Date(now.getTime() + i * 10 * 60000); // 10 min intervals
+      
+      let predicted = currentDensity;
+      if (i > 0) {
+        // Curve towards a peak or drop
+        predicted = Math.max(0, Math.min(100, currentDensity + (i * 5) * (Math.random() > 0.5 ? 1 : -0.5)));
+      }
+      
+      const historical = Math.max(0, Math.min(100, predicted + (Math.random() * 20 - 10)));
+      return { time, predicted, historical };
+    });
+  }, [data.zones, data.timestamp]); // update when data changes
 
   const handleApply = () => {
     try {
@@ -47,6 +69,16 @@ export default function DataConsoleView({ data, onUpdate }: DataConsoleViewProps
       <p className="text-xs dark:text-slate-400 text-slate-600 uppercase tracking-tight mb-2">
         Simulate live stadium conditions manually or paste a JSON state.
       </p>
+
+      <div className="flex flex-col gap-2 mb-2">
+        <h3 className="text-[10px] font-bold dark:text-slate-500 text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+          <Activity size={12} />
+          Crowd Density Forecast vs Historical ({data.zones[0]?.name || "Zone"})
+        </h3>
+        <div className="dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 rounded-lg p-2">
+          <PredictionChart dataPoints={predictionDataPoints} />
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2 mb-2">
         <h3 className="text-[10px] font-bold dark:text-slate-500 text-slate-400 uppercase tracking-widest mb-1">Gate Capacity Simulators</h3>

@@ -1,5 +1,6 @@
 import { StadiumData } from "../types";
-import { User, ShieldCheck } from "lucide-react";
+import { User, ShieldCheck, MapPin, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface ProfileViewProps {
   data: StadiumData;
@@ -8,6 +9,7 @@ interface ProfileViewProps {
 
 export default function ProfileView({ data, onUpdate }: ProfileViewProps) {
   const profile = data.fan_profile;
+  const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(false);
 
   const handleChange = (field: keyof typeof profile, value: any) => {
     onUpdate({
@@ -18,6 +20,19 @@ export default function ProfileView({ data, onUpdate }: ProfileViewProps) {
       }
     });
   };
+
+  useEffect(() => {
+    if (!isAutoRefreshEnabled) return;
+
+    const possibleSections = ["101", "102", "115", "214", "220", "305", "340"];
+    
+    const interval = setInterval(() => {
+      const randomSection = possibleSections[Math.floor(Math.random() * possibleSections.length)];
+      handleChange("seat_section", randomSection);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoRefreshEnabled, data, handleChange]);
 
   return (
     <div className="p-6 pb-6 flex flex-col gap-8 dark:bg-slate-950 bg-slate-50 min-h-full">
@@ -32,14 +47,32 @@ export default function ProfileView({ data, onUpdate }: ProfileViewProps) {
       </div>
 
       <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 overflow-hidden">
-        <div className="p-4 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
-          <label className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-widest">Seat Section</label>
-          <input 
-            type="text" 
-            value={profile.seat_section}
-            onChange={(e) => handleChange("seat_section", e.target.value)}
-            className="w-24 text-right dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 rounded dark:text-slate-300 text-slate-700 px-3 py-1.5 text-sm font-mono focus:border-indigo-500 outline-none"
-          />
+        <div className="p-4 border-b dark:border-slate-800 border-slate-200 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-widest">Seat Section</label>
+            <input 
+              type="text" 
+              value={profile.seat_section}
+              onChange={(e) => handleChange("seat_section", e.target.value)}
+              className="w-24 text-right dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 rounded dark:text-slate-300 text-slate-700 px-3 py-1.5 text-sm font-mono focus:border-indigo-500 outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t dark:border-slate-800 border-slate-100">
+            <div>
+              <label className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
+                <MapPin size={12} /> Live Beacon GPS
+              </label>
+              <span className="text-[10px] dark:text-slate-500 text-slate-400 uppercase">Auto-refresh location</span>
+            </div>
+            <button 
+              onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${isAutoRefreshEnabled ? 'bg-indigo-600' : 'dark:bg-slate-700 bg-slate-200'}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform flex items-center justify-center ${isAutoRefreshEnabled ? 'translate-x-6.5 left-0' : 'left-0.5'}`}>
+                 {isAutoRefreshEnabled && <RefreshCw size={10} className="text-indigo-600 animate-spin" />}
+              </div>
+            </button>
+          </div>
         </div>
         
         <div className="p-4 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">

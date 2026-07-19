@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { StadiumData, Incident } from "../types";
-import { Search, MapPin, AlertCircle, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Search, MapPin, AlertCircle, Clock, CheckCircle2, AlertTriangle, Map, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import InteractiveStadiumMap from "./InteractiveStadiumMap";
 import StadiumHeatmap from "./StadiumHeatmap";
 import ChartCard from "./ChartCard";
 import ReportIncidentModal from "./ReportIncidentModal";
@@ -18,6 +19,7 @@ export default function MapView({ data, onAskAi, onReportIncident }: MapViewProp
   const [navDistance, setNavDistance] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [suggestedPath, setSuggestedPath] = useState<string | null>(null);
+  const [mapMode, setMapMode] = useState<"standard" | "heatmap">("standard");
 
   React.useEffect(() => {
     if (selectedDestination && navDistance > 0) {
@@ -74,6 +76,15 @@ export default function MapView({ data, onAskAi, onReportIncident }: MapViewProp
     };
   };
 
+  const handleGateSelect = (gateId: string) => {
+    const gate = data.gates.find(g => g.id === gateId);
+    if (gate) {
+      const eta = calculateEstimatedArrival(gate.walk_time_min, gate.occupancy_pct);
+      setToastMessage(`${gate.name}: ETA ${eta.timeString} (${eta.walkTime} mins)`);
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+
   return (
     <div className="p-6 pb-6 flex flex-col gap-6 dark:bg-slate-900 bg-white/30 min-h-full">
       {/* Search / AI Bar */}
@@ -107,7 +118,22 @@ export default function MapView({ data, onAskAi, onReportIncident }: MapViewProp
         </div>
       </div>
 
-      <StadiumHeatmap data={data} />
+      <div className="relative">
+        <button 
+          onClick={() => setMapMode(m => m === "standard" ? "heatmap" : "standard")}
+          className="absolute top-4 right-4 z-10 bg-white dark:bg-slate-800 p-2 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest"
+        >
+          <Layers size={16} className={mapMode === "heatmap" ? "text-indigo-500" : ""} />
+          {mapMode === "standard" ? "Heatmap" : "Map"}
+        </button>
+
+        {mapMode === "standard" ? (
+          <InteractiveStadiumMap data={data} onGateSelect={handleGateSelect} />
+        ) : (
+          <StadiumHeatmap data={data} />
+        )}
+      </div>
+      
       <ChartCard data={data} />
 
       {/* Navigation Toast & Progress */}
@@ -169,12 +195,22 @@ export default function MapView({ data, onAskAi, onReportIncident }: MapViewProp
               </div>
             )}
             
-            <button 
-              onClick={() => setSelectedDestination(null)}
-              className="text-[10px] uppercase font-bold tracking-widest text-rose-500 hover:text-rose-400 text-right mt-1"
-            >
-              Cancel Navigation
-            </button>
+            <div className="flex flex-col gap-2 mt-2">
+              <a 
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`Stadium ${selectedDestination}`)}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg p-2 text-[10px] font-bold tracking-widest uppercase transition-colors"
+              >
+                <Map size={14} /> View in Google Maps
+              </a>
+              <button 
+                onClick={() => setSelectedDestination(null)}
+                className="text-[10px] uppercase font-bold tracking-widest text-rose-500 hover:text-rose-400 text-center py-1"
+              >
+                Cancel Navigation
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
