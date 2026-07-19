@@ -10,7 +10,7 @@ interface Props {
   onGateSelect?: (gateId: string) => void;
 }
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyCop0S-TovgWgibP2maf7MohB8yXxBOcrI";
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const isValidKey = API_KEY && API_KEY.length > 5 && !API_KEY.includes("YOUR_");
 
 // Custom hook to handle clustering
