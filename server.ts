@@ -3,6 +3,10 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import "dotenv/config";
+import helmet from "helmet";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+import hpp from "hpp";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -10,7 +14,34 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  // 1. Helmet: Secure HTTP headers
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    frameguard: false,
+  }));
+
+  // 1b. Trust proxy for rate limiting (since it runs behind a proxy)
+  app.set("trust proxy", 1);
+
+  // 2. CORS: Cross-Origin Resource Sharing protection
+  app.use(cors());
+
+  // 3. Rate Limiting: Prevent brute-force and DDoS attacks
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: { error: "Too many requests, please try again later." }
+  });
+  app.use("/api/", apiLimiter);
+
+  // 4. Body Parser with Size Limit: Prevent large payload DOS attacks
+  app.use(express.json({ limit: "5mb" }));
+
+  // 5. HPP: Prevent HTTP Parameter Pollution
+  app.use(hpp());
 
   // API route for AI concierge
   app.post("/api/concierge", async (req, res) => {
